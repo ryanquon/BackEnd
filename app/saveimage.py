@@ -3,6 +3,7 @@
 #https://stackoverflow.com/questions/18908426/increasing-client-max-body-size-in-nginx-conf-on-aws-elastic-beanstalk
 #https://medium.com/@marilu597/getting-to-know-and-love-aws-elastic-beanstalk-configuration-files-ebextensions-9a4502a26e3c
 #https://stackoverflow.com/questions/40336918/how-to-write-a-file-or-data-to-an-s3-object-using-boto3
+#https://towardsdatascience.com/object-detection-with-less-than-10-lines-of-code-using-python-2d28eebc5b11
 import boto3
 import os
 from botocore.exceptions import NoCredentialsError
@@ -14,21 +15,20 @@ from keys import keyaccess #only use if you're gonna localhost
 from keys import keysecret #only use on localhost
 from flask import send_file
 import tempfile
-#from imageai.Detection import ObjectDetection   # unfortunately not compatible with python 3.7
 import cv2
+import cvlib as cv
+from cvlib.object_detection import draw_bbox
 
 imagesaver = Blueprint('imagesaver', __name__)
 
 def determine(eachObject, centerx, centery): # (x1, y1, x2, y2). x1 and y1 refers to the lowerleft corner 
     #and x2 and y2 refers to the upperright corner.
-    if (eachObject["box_points"][0] <= centerx <= eachObject["box_points"][2]):
-        if (eachObject["box_points"][1] <= centery <= eachObject["box_points"][3]):
+    if (eachObject[0] <= centerx <= eachObject[2]):
+        if (eachObject[1] <= centery <= eachObject[3]):
             return True
     return False
 
 
-#ACCESS_KEY = os.environ.get('AWS_ACCESS_KEY') #do this when you actually deploy
-#SECRET_KEY = os.environ.get('AWS_SECRET_KEY')
 ACCESS_KEY = keyaccess
 SECRET_KEY = keysecret
 
@@ -43,32 +43,23 @@ def upload_to_aws():
     with open(tmp.name, 'wb') as f:
         s3.download_fileobj(bucketname, keyname, f)  
 
-    #im = cv2.imread(tmp.name)
-    #h, w, c = im.shape
-    #centerx = w/2
-    #centery = h/2
+    im = cv2.imread(tmp.name)
+    h, w, c = im.shape
+    centerx = w/2
+    centery = h/2
+    bbox, label, conf = cv.detect_common_objects(im)
 
-    #execution_path = os.getcwd()
+    finallist = [x for x in bbox if determine(x,centerx,centery)]
 
-    #detector = ObjectDetection()    # DEFINE object detection variable
-    #detector.setModelTypeAsRetinaNet()
-    #detector.setModelPath( os.path.join(execution_path , "model.h5"))
-    ## !!! 'resnet50_coco_best_v2.0.1.h5' is the RetinaNet model file used for object detection
-    #detector.loadModel()
-    #detections = detector.detectObjectsFromImage(input_image=os.path.join(execution_path , tmp.name), output_image_path=os.path.join(execution_path , "output.jpg"))
-    ## !!! IMAGE FILE MUST BE CALLED 'image.jpg'
-
-    #finallist = [x for x in detections if determine(x,centerx,centery)]
-    #if (len(finallist) > 0):
-        #left = finallist[0]["box_points"][0]
-        #top = finallist[0]["box_points"][1]
-        #right = finallist[0]["box_points"][2]
-        #bottom = finallist[0]["box_points"][3]
-        #im1 = im[top:bottom, left:right]
-        #cv2.imwrite("output.jpg",im1)
-        #s3.upload_fileobj("output.jpg", bucketname, 'fake2.jpg')
-        #s3.upload_file("output.jpg", bucketname, 'output.jpg')
-    #os.remove("output.jpg")
+    if (len(finallist) > 0):
+        left = finallist[0][0]
+        top = finallist[0][1]
+        right = finallist[0][2]
+        bottom = finallist[0][3]
+        im1 = im[top:bottom, left:right]
+        cv2.imwrite("output.jpg",im1)
+        s3.upload_file("output.jpg", bucketname, 'trial2.jpg')
+    os.remove("output.jpg")
     return 'went fine'
 
 
