@@ -1,0 +1,11 @@
+
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+keys.py
+__pycache__/*
+model.h5
+env/*
+#comment out resnet if you are actually gonna do a localhost test and an eb deploy for that
