@@ -15,6 +15,8 @@ def processfunc():
                 
     mycursor = connection.cursor()
     mycursor.execute("SELECT * FROM USER_DATA.table1")
+    mycursor.execute("SELECT latitude, longitude FROM `USER_DATA`.`table1` WHERE sqrt(pow(latitude-data[latitude],2)+ pow(longitude-data[longitude],2)) <= 10")
+    #not sure if data[latitude] is correct formatting
     myresult = mycursor.fetchall()  
     myresult = json.dumps(myresult)
     return myresult
